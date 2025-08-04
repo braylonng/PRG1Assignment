@@ -118,5 +118,17 @@ print("  and live happily ever after?")
 print("-----------------------------------------------------------")
 
 # TODO: The game!
-    
-    
+while True:
+    show_main_menu()
+    option=input('Your Choice? ')
+    if option.upper()=='Q':
+        break
+    elif option.upper()=='N':
+        name=input('Greetings, miner! What is your name? ')
+        print('Pleased to meet you, {}. Welcome to Sundrop Town!'.format(name))
+    day = 0
+    while True:
+        show_town_menu()
+        choice=input('Your choice? ')
+        if choice.upper()=='Q':
+            break
