@@ -69,6 +69,18 @@ def draw_view(game_map, fog, player):
 
 # This function shows the information for the player
 def show_information(player):
+    print('\n----- Player Information -----')
+    print(f'Name: {player.get('name','Unknown')}')
+    print(f"Current position: ({player['x']}, {player['y']})")
+    print(f'Pickaxe level: {player['pickaxe']}')
+    for ore in minerals:
+        print(f'{ore.capitalize()}: {player[ore]}')
+        print("------------------------------")
+    print(f"Load: {player['load']} / {player['max_load']}")
+    print(f"GP: {player['GP']}")
+    print(f"Steps taken: {player['steps']}")
+    print(f"Warehouse: {player['warehouse']}")
+    print("------------------------------\n")
     return
 
 # This function saves the game
@@ -81,8 +93,18 @@ def save_game(game_map, fog, player):
 # This function loads the game
 def load_game(game_map, fog, player):
     # load map
+    with open('save_game.txt','r') as savefile:
+        game_map_data= eval(savefile.readline())
+        fog_data = eval(savefile.readline())
+        player_data=eval(savefile.readline())
+    game_map.clear()
+    game_map.extend(game_map_data)
     # load fog
+    fog.clear()
+    fog.extend(game_map_data)
     # load player
+    player.clear()
+    player.update(player_data)
     return
 
 def show_main_menu():
@@ -122,7 +144,7 @@ day=0
 while True:
     if game_state=='main':
         show_main_menu()
-        option=input('Your Choice? ')
+        option=input('Your Choice? ').strip()
         if option.upper()=='Q':
             print('Thanks for playing!')
             break
@@ -132,14 +154,61 @@ while True:
             game_state='town'
             
         elif option.upper()=='L':
-            continue   
+            load_game(game_map, fog, player)
+            print("Game loaded.")
+            game_state = 'town'
         else:
             print('Invalid Option. Please try again.')
             continue
+
     elif game_state=='town':
         day+=1
         print(f'DAY {day}')
         show_town_menu()
-        choice=input('Your choice? ')
+        choice=input('Your choice? ').strip()
         if choice.upper()=='Q':
              break
+        elif choice.upper()=='B':  
+            while True:
+                print('----------------------- Shop Menu -------------------------')
+                if player['pickaxe']== 1:
+                    print('(P)ickaxe upgrade to Level 2 to mine silver ore for 50 GP')
+                elif player['pickaxe']==2:
+                    print('(P)ickaxe upgrade to Level 3 to mine silver ore for 150 GP')
+                #make torch option here
+                print('(B)ackpack upgrade to carry 12 items for 20 GP')
+                print('(L)eave shop')
+                print('-----------------------------------------------------------')
+                print(f'GP: {player['GP']}')
+                print('-----------------------------------------------------------')
+                shop_choice=input('Your choice? ').strip()
+                if  shop_choice.upper()=='P':
+                    if player['pickaxe']==1:
+                        if player['GP']>=50:
+                            player['GP']-=50
+                            player['pickaxe']=2
+                            print('Congratulations! You can now mine silver!')
+                        else:
+                            print("Not enough GP.")
+                    elif player['pickaxe']==2:
+                        if player['GP']>=150:
+                            player['GP'] -= 150
+                            player['pickaxe'] = 3
+                        print("Congratulations! You can now mine gold!")
+                    elif player['pickaxe']==3:
+                        print('Your Pickaxe is already maxed out!')
+                elif shop_choice.upper() == 'B':
+                    price= player['max_load']*2
+                    if player['GP']>=price:
+                        player['GP']-=price
+                        player['max_load'] +=2
+                        print(f'Congratulations! You can now carry {player['max_load']} items!')
+                elif shop_choice.upper()=='L':
+                    break
+                else:
+                    print('Invalid option. Please try again')
+        elif choice.upper() =='I':
+            show_information(player)
+
+
+                            
