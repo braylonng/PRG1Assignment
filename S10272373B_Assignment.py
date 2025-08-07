@@ -371,7 +371,7 @@ while True:
         show_town_menu(player)
         choice=input('Your choice? ').strip()
         if choice.upper() == 'S':
-            confirm=input(f'You have {player['load']} / {player['max_load']} ores. Press S again to confirm selling.').strip()
+            confirm=input(f'You have {player['load']} / {player['max_load']} ores. Press S again to confirm selling: ').strip()
             if confirm.upper() == 'S':
                 sell_ore()
                 if sell_ore():
