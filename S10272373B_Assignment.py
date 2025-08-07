@@ -21,6 +21,22 @@ prices = {}
 prices['copper'] = (1, 3)
 prices['silver'] = (5, 8)
 prices['gold'] = (10, 18)
+def preserve_player_data(player):
+    return {
+        'name': player.get('name', ''),
+        'torch': player.get('torch', False),
+        'pickaxe': player.get('pickaxe', 1),
+        'max_load': player.get('max_load', 10),
+        'GP': player.get('GP', 0),
+        'warehouse': player.get('warehouse', {'copper': 0, 'silver': 0, 'gold': 0}),
+        'steps': player.get('steps', 0),
+        'day': player.get('day', 0),
+        'copper': player.get('copper', 0),
+        'silver': player.get('silver', 0),
+        'gold': player.get('gold', 0),
+        'load': player.get('load', 0),
+        'portal': player.get('portal', (0, 0)),
+    }
 
 # This function loads a map structure (a nested list) from a file
 # It also updates MAP_WIDTH and MAP_HEIGHT
@@ -61,28 +77,15 @@ def initialize_game(game_map, fog, player, level_file='level1.txt', level=1):
     fog.clear()
     original_ore_positions.clear()
     for _ in range(MAP_HEIGHT):
-    # TODO: initialize fog
         fog.append([True] * MAP_WIDTH)
-    # TODO: initialize player
+    preserved = preserve_player_data(player)
+
     player.clear()
-    #   You will probably add other entries into the player dictionary
-    player['name'] = name
+    player.update(preserved)
     player['level'] = level
-    player['torch'] = False
-    player['portal'] = (0,0)
-    player['pickaxe']=1
-    player['load']= 0
-    player['max_load']=10
     player['x'] = 0
     player['y'] = 0
-    player['copper'] = 0
-    player['silver'] = 0
-    player['gold'] = 0
-    player['GP'] = 0
-    player['day'] = 0
-    player['steps'] = 0
     player['turns'] = TURNS_PER_DAY
-    player['warehouse'] = {'copper': 0, 'silver': 0, 'gold': 0}
     original_ore_positions.clear()
     for y in range(MAP_HEIGHT):
         for x in range(MAP_WIDTH):
