@@ -109,8 +109,6 @@ def draw_map(game_map, fog, player):
         row += "|"
         print(row)
     print("+" + ("-" * MAP_WIDTH) + "+")
-    
-
 # This function draws the 3x3 viewport
 def draw_view(game_map, fog, player):
     radius = 1 if not player.get('torch') else 2
