@@ -1,5 +1,7 @@
 from random import randint
+import os
 
+original_ore_positions = []
 player = {}
 game_map = []
 fog = []
@@ -22,22 +24,22 @@ prices['gold'] = (10, 18)
 # This function loads a map structure (a nested list) from a file
 # It also updates MAP_WIDTH and MAP_HEIGHT
 def load_map(filename, map_struct):
-    map_file = open(filename, 'r')
-    global MAP_WIDTH
-    global MAP_HEIGHT
-    
+    global MAP_WIDTH, MAP_HEIGHT
     map_struct.clear()
-    
-    with open('level1.txt','r') as map:
-        for line in map:
-            map_struct.append(list(line.strip()))
-    MAP_HEIGHT = len(map_struct)
-    MAP_WIDTH = len(map_struct[0]) if MAP_HEIGHT >0 else 0
-    
-    MAP_WIDTH = len(map_struct[0])
-    MAP_HEIGHT = len(map_struct)
+    max_width = 0
+    raw_lines = []
 
-    map_file.close()
+    with open(filename, 'r') as f:
+        for line in f:
+            raw_line = line.rstrip('\n')
+            raw_lines.append(raw_line)
+            max_width=max(max_width, len(raw_line))
+    for line in raw_lines:
+        padded_line = line.ljust(max_width)
+        map_struct.append(list(padded_line))
+
+    MAP_HEIGHT = len(map_struct)
+    MAP_WIDTH = len(map_struct[0]) if MAP_HEIGHT > 0 else 0
 
 # This function clears the fog of war at the 3x3 square around the player
 def clear_fog(fog, player):
@@ -51,9 +53,11 @@ def clear_fog(fog, player):
     return
 
 def initialize_game(game_map, fog, player):
+    global MAP_WIDTH, MAP_HEIGHT, original_ore_positions
     # initialize map
     load_map("level1.txt", game_map)
     fog.clear()
+    original_ore_positions.clear()
     for _ in range(MAP_HEIGHT):
     # TODO: initialize fog
         fog.append([True] * MAP_WIDTH)
@@ -74,6 +78,12 @@ def initialize_game(game_map, fog, player):
     player['day'] = 0
     player['steps'] = 0
     player['turns'] = TURNS_PER_DAY
+    player['warehouse'] = {'copper': 0, 'silver': 0, 'gold': 0}
+    original_ore_positions.clear()
+    for y in range(MAP_HEIGHT):
+        for x in range(MAP_WIDTH):
+            if game_map[y][x] in ['C', 'S', 'G']:
+                original_ore_positions.append((x, y, game_map[y][x]))
 
 
     clear_fog(fog, player)
@@ -105,7 +115,7 @@ def draw_view(game_map, fog, player):
         for dx in range(-radius, radius + 1):
             x = player['x'] + dx
             y = player['y'] + dy
-            if 0 <= x < MAP_WIDTH and 0 <= y < MAP_HEIGHT:
+            if 0 <= y < len(game_map) and 0 <= x < len(game_map[y]):
                 if x == player['x'] and y == player['y']:
                     row += 'M'
                 elif fog[y][x]:
@@ -121,7 +131,7 @@ def draw_view(game_map, fog, player):
 # This function shows the information for the player
 def show_information(player):
     print('\n----- Player Information -----')
-    print(f'Name: {player.get('name','Unknown')}')
+    print(f"Name: {player.get('name', 'Unknown')}")
     print(f"Current position: ({player['x']}, {player['y']})")
     print(f'Pickaxe level: {player['pickaxe']}')
     for ore in minerals:
@@ -138,7 +148,7 @@ def show_information(player):
 def save_game(game_map, fog, player):
     with open('savegame.txt','w') as save:
     # save map
-        save.write(str(game_map))+ '\n'
+        save.write(str(game_map)+ '\n')
     # save fog
         save.write(str(fog)+'\n')
     # save player
@@ -148,15 +158,20 @@ def save_game(game_map, fog, player):
 # This function loads the game
 def load_game(game_map, fog, player):
     # load map
-    with open('save_game.txt','r') as savefile:
-        game_map_data= eval(savefile.readline())
-        fog_data = eval(savefile.readline())
-        player_data=eval(savefile.readline())
+    if not os.path.exists("savegame.txt"):
+        print("No saved game found. Please save a game before trying to load.")
+        return
+
+    with open("savegame.txt", "r") as savefile:
+        game_map_data = eval(savefile.readline())
+        fog_data = eval(savefile.readline())  
+        player_data = eval(savefile.readline())
+    # load map
     game_map.clear()
     game_map.extend(game_map_data)
     # load fog
     fog.clear()
-    fog.extend(game_map_data)
+    fog.extend(fog_data)
     # load player
     player.clear()
     player.update(player_data)
@@ -170,7 +185,7 @@ def show_main_menu():
 #    print("(H)igh scores")
     print("(Q)uit")
     print("------------------")
-def show_town_menu():
+def show_town_menu(player):
     print()
     
     print(f'DAY {int(player['day'])+1}')
@@ -180,6 +195,8 @@ def show_town_menu():
     print("See Mine (M)ap")
     print("(E)nter mine")
     print("Sa(V)e game")
+    print('(S)ell ores')
+    print("(W)arehouse")
     print("(Q)uit to main menu")
     print("------------------------")
 def sell_ore():
@@ -194,13 +211,65 @@ def sell_ore():
             player['load']=0
             total +=gp
     if player['GP']>= WIN_GP:
-        print(f'\nWoo-hoo! Well done, {player['name']}, you have {player['GP']} GP!\nYou now have enough to retire and play video games every day.\nAnd it only took you {player['day']} days and {player['steps']} steps! You win!')
-def replenish_nodes():
-    ores=['C','S','G']
-    for y in range(MAP_HEIGHT):
-        for x in range(MAP_WIDTH):
-            if game_map[y][x] == ' ' and randint(1,100)<=20:
-                game_map[y][x] = ores[randint(0,2)]
+        print(f"\nWoo-hoo! Well done, {player['name']}, you have {player['GP']} GP!\nYou now have enough to retire and play video games every day.\nAnd it only took you {player['day']} days and {player['steps']} steps! You win!")
+def replenish_nodes(game_map):
+    for x, y, ore_char in original_ore_positions:
+        if game_map[y][x] == ' ':
+            if randint(1, 100) <= 20:  # 20% chance
+                game_map[y][x] = ore_char
+def show_warehouse_menu(player):
+    while True:
+        print('\n----- Warehouse -----')
+        print('Stored Ore: ')
+        for ore in minerals:
+            print(f'{ore.capitalize()}: {player['warehouse'][ore]}')
+        print("---------------------")
+        print("(S)tore ore")
+        print("(W)ithdraw ore")
+        print("(B)ack")   
+        warehouse_choice = input('Your choice? ').strip()
+        if warehouse_choice.upper()=='S':
+            for ore in minerals:
+                amt= player[ore]
+                if amt>0:
+                    print(f'You have {amt} {ore}.')
+                    deposit = input(f'How many {ore} to store?').strip()
+                    if deposit.isdigit():
+                        depositing= int(deposit)
+                        if 0<= depositing <= amt:
+                            player[ore] -= depositing
+                            player['warehouse'][ore] += depositing
+                            player['load']-=depositing
+                            print(f'Store {depositing} {ore} in warehouse')
+                        else:
+                            print('Invalid amount. Please try again.')
+                    else:
+                        print('Invalid number.Please try again')
+        elif warehouse_choice.upper() == 'W':
+            for ore in minerals:
+                amount = player['warehouse'][ore]
+                if amount> 0:
+                    print(f'You have {amount} {ore} in warehouse.')
+                    withdraw= input(f'How many {ore} to withdraw? ').strip()
+                    if withdraw.isdigit():
+                        withdrawal=int(withdraw)
+                        space= player['max_load']- player['load']
+                        if 0 <=withdrawal<= amount and withdrawal <= space:
+                            player[ore] += withdrawal
+                            player['warehouse'][ore] -= withdrawal
+                            player['load']+= withdrawal
+                            print(f'withdrew {withdrawal} {ore} from warehouse')
+                        elif withdrawal> space:
+                            print('Not enough space in your backpack')
+                        else:
+                            print('Invalid amount. Please try again')
+                    else:
+                        print('Invalid number. Please try again')
+        elif warehouse_choice.upper() == 'B':
+            break
+        else:
+            print('Invalid option. Please try again.')                
+                     
             
 
 #--------------------------- MAIN GAME ---------------------------
@@ -237,9 +306,14 @@ while True:
             continue
 
     elif game_state=='town':
-        show_town_menu()
+        show_town_menu(player)
         choice=input('Your choice? ').strip()
-        if choice.upper()=='Q':
+        if choice.upper() == 'S':
+            confirm=input(f'You have {player['load']} / {player['max_load']} ores. Press S again to confirm selling.').strip()
+            if confirm.upper() == 'S':
+                sell_ore()
+
+        elif choice.upper()=='Q':
              game_state='main'
         elif choice.upper()=='B':  
             while True:
@@ -250,7 +324,7 @@ while True:
                     print('(P)ickaxe upgrade to Level 3 to mine silver ore for 150 GP')
                 if not player['torch']:
                     print("(T)orch (Magic) upgrade for 50 GP")
-                print('(B)ackpack upgrade to carry 12 items for 20 GP')
+                print(f'(B)ackpack upgrade to carry {player['max_load']+2} items for {player['max_load']*2} GP')
                 print('(L)eave shop')
                 print('-----------------------------------------------------------')
                 print(f'GP: {player['GP']}')
@@ -293,7 +367,11 @@ while True:
         elif choice.upper()== 'M':
             draw_map(game_map, fog, player)
         elif choice.upper() == 'E':
+            player['x'], player['y'] = player['portal']
             game_state = 'mine'
+        elif choice.upper() == 'W':
+            show_warehouse_menu(player)
+
         elif choice.upper()=='V':
             save_game(game_map,fog, player)
             print('Game saved')
@@ -302,9 +380,9 @@ while True:
     elif game_state=='mine':
         clear_fog(fog,player)
         draw_view(game_map, fog, player)
-        print(f'Turns left: {player['turns']}    Load: {player['load']}    Steps: {player['steps']}') 
+        print(f'Turns left: {player['turns']}    Load: {player['load']} / {player['max_load']}   Steps: {player['steps']}') 
         move = input("(WASD) to move | (M)ap | (I)nfo | (P)ortal | (Q)uit: ").strip().lower()
-        if move in ['w','a','s','d']:
+        if move.strip().lower() in ['w','a','s','d']:
             dx, dy = 0,0
             if move == 'w': dy=-1
             elif move == 's': dy = 1
@@ -314,18 +392,23 @@ while True:
             new_y = player['y']+ dy
 
             if not (0 <= new_x < MAP_WIDTH and 0 <= new_y < MAP_HEIGHT):
-                print("Invalid move. You cant't move ourside the cave.")
+                print("Invalid move. You can't move outside the cave.")
             else:
                 pickaxe_levels = {'C': 1, 'S': 2, 'G': 3}
                 tile = game_map[new_y][new_x]
-                can_mine = tile in mineral_names and player ['load'] < player['max_load']
-                if tile in mineral_names[tile]:
+                if tile in mineral_names:
                     mineral = mineral_names[tile]
-                    if player['pickaxe'] < pickaxe_levels[minerals]:
+                    if player['pickaxe'] < pickaxe_levels[tile]:
                         print(f"Your pickaxe isn't strong enough to mine {mineral}")
                         continue
-                    if not can_mine:
+                    if player['load']>= player['max_load']:
                         print("You're carrying too much!")
+                        print('You place your portal stone here and zap back to town.')
+                        player['portal'] = (player['x'],player['y'])
+                        player['day']+=1
+                        player['turns'] = TURNS_PER_DAY
+                        replenish_nodes(game_map)
+                        game_state = 'town'
                         continue
                     if mineral == 'copper':
                         amount = randint(1,5)
@@ -336,6 +419,8 @@ while True:
                     space = player['max_load'] - player['load']
                     picked = min(space,amount)
                     player[mineral]+= picked
+                    player['load']+=picked
+                    game_map[new_y][new_x] = ' '
                     print(f'You mined {picked} piece(s) of {mineral}.')
                 player['x']=new_x
                 player['y']=new_y
@@ -348,24 +433,22 @@ while True:
                     game_state = 'town'
                     player['portal'] = (player['x'], player['y'])
                     player['x'], player ['y']=0,0
-                    sell_ore()
                     player['day'] +=1
                     player['turns'] = TURNS_PER_DAY
-                    replenish_nodes()
-        elif move == 'p':
+                    replenish_nodes(game_map)
+        elif move.strip().lower() == 'm':
             draw_map(game_map,fog,player)
-        elif move == 'i':
+        elif move.strip().lower() == 'i':
             show_information(player)
-        elif move =='p':
+        elif move.strip().lower() =='p':
             print('You place your portal stone here and zap back to town.')
             player['portal'] = (player['x'], player['y'])
             player['x'] = 0
-            player['y']=0
+            player['y']= 0
             game_state='town'
-            sell_ore()
             player['day'] +=1
             player['turns']=TURNS_PER_DAY
-            replenish_nodes()
+            replenish_nodes(game_map)
 
         elif move == 'q':
             game_state= 'main'
