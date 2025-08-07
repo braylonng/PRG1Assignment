@@ -224,6 +224,7 @@ def sell_ore():
             total += gp
     if player['GP']>= WIN_GP:
         print(f"\nWoo-hoo! Well done, {player['name']}, you have {player['GP']} GP!\nYou now have enough to retire and play video games every day.\nAnd it only took you {player['day']} days and {player['steps']} steps! You win!")
+        save_score(player['name'], player['day'], player['steps'], player['GP'])
         return True
     return False
         
@@ -283,7 +284,48 @@ def show_warehouse_menu(player):
         elif warehouse_choice.upper() == 'B':
             break
         else:
-            print('Invalid option. Please try again.')                
+            print('Invalid option. Please try again.')  
+def score_sort_key(score):
+    return [score['day'], score['steps'], -score['GP']]  
+def save_score(name, day, steps, gp):
+    score_entry = {'name': name, 'day': day, 'steps': steps, 'GP': gp}
+    scores = []
+
+    if os.path.exists('top_scores.txt'):
+        with open('top_scores.txt', 'r') as high_scores:
+            for line in high_scores:
+                scores.append(eval(line.strip()))
+
+    scores.append(score_entry)
+
+    # Manual sorting using bubble sort (no lambda)
+    for i in range(len(scores)):
+        for j in range(0, len(scores) - i - 1):
+            a = score_sort_key(scores[j])
+            b = score_sort_key(scores[j + 1])
+            if a > b:
+                scores[j], scores[j + 1] = scores[j + 1], scores[j]
+
+    # Keep only top 5
+    scores = scores[:5]
+
+    with open('top_scores.txt', 'w') as f:
+        for score in scores:
+            high_scores.write(str(score) + '\n')       
+def show_top_scores():
+    print("\n----- Top 5 Scores -----")
+    if not os.path.exists('top_scores.txt'):
+        print("No scores recorded yet.")
+        return
+
+    with open('top_scores.txt', 'r') as f:
+        scores = [eval(line.strip()) for line in f]
+
+    for i in range(len(scores)):
+        score = scores[i]
+        print(f"{i + 1}. {score['name']} - Days: {score['day']}, Steps: {score['steps']}, GP: {score['GP']}")
+    print("------------------------\n")
+     
                      
             
 
@@ -321,6 +363,8 @@ while True:
                 load_game(game_map, fog, player)
                 print("Game loaded.")
                 game_state = 'town'
+        elif option.upper()=='H':
+            show_top_scores()
         else:
             print('Invalid Option. Please try again.')
             continue
