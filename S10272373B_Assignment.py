@@ -135,9 +135,9 @@ def show_information(player):
     print('\n----- Player Information -----')
     print(f"Name: {player.get('name', 'Unknown')}")
     print(f"Current position: ({player['x']}, {player['y']})")
-    print(f'Pickaxe level: {player['pickaxe']}')
+    print(f"Pickaxe level: {player['pickaxe']}")
     for ore in minerals:
-        print(f'{ore.capitalize()}: {player[ore]}')
+        print(f"{ore.capitalize()}: {player[ore]}")
         print("------------------------------")
     print(f"Load: {player['load']} / {player['max_load']}")
     print(f"GP: {player['GP']}")
@@ -236,7 +236,7 @@ def show_warehouse_menu(player):
         print('\n----- Warehouse -----')
         print('Stored Ore: ')
         for ore in minerals:
-            print(f'{ore.capitalize()}: {player['warehouse'][ore]}')
+            print(f"{ore.capitalize()}: {player['warehouse'][ore]}")
         print("---------------------")
         print("(S)tore ore")
         print("(W)ithdraw ore")
@@ -371,7 +371,7 @@ while True:
         show_town_menu(player)
         choice=input('Your choice? ').strip()
         if choice.upper() == 'S':
-            confirm=input(f'You have {player['load']} / {player['max_load']} ores. Press S again to confirm selling: ').strip()
+            confirm=input(f"You have {player['load']} / {player['max_load']} ores. Press S again to confirm selling: ").strip()
             if confirm.upper() == 'S':
                 sell_ore()
                 if sell_ore():
@@ -389,7 +389,7 @@ while True:
                     print('(P)ickaxe upgrade to Level 3 to mine silver ore for 150 GP')
                 if not player['torch']:
                     print("(T)orch (Magic) upgrade for 50 GP")
-                print(f'(B)ackpack upgrade to carry {player['max_load']+2} items for {player['max_load']*2} GP')
+                print(f"(B)ackpack upgrade to carry {player['max_load']+2} items for {player['max_load']*2} GP")
                 print('(L)eave shop')
                 print('-----------------------------------------------------------')
                 print(f'GP: {player['GP']}')
@@ -415,7 +415,7 @@ while True:
                     if player['GP']>=price:
                         player['GP']-=price
                         player['max_load'] +=2
-                        print(f'Congratulations! You can now carry {player['max_load']} items!')
+                        print(f"Congratulations! You can now carry {player['max_load']} items!")
                 elif shop_choice.upper() == 'T' and not player['torch']:
                     if player['GP'] >= 50:
                         player['GP'] -= 50
@@ -445,7 +445,7 @@ while True:
     elif game_state=='mine':
         clear_fog(fog,player)
         draw_view(game_map, fog, player)
-        print(f'Turns left: {player['turns']}    Load: {player['load']} / {player['max_load']}   Steps: {player['steps']}') 
+        print(f"Turns left: {player['turns']}    Load: {player['load']} / {player['max_load']}   Steps: {player['steps']}") 
         move = input("(WASD) to move | (M)ap | (I)nfo | (P)ortal | (Q)uit: ").strip().lower()
         if move.strip().lower() in ['w','a','s','d']:
             dx, dy = 0,0
@@ -488,40 +488,51 @@ while True:
                     game_map[new_y][new_x] = ' '
                     print(f'You mined {picked} piece(s) of {mineral}.')
                 elif tile == 'D':
-                    print('You found an old and Mysterious door, and you enter into another mine...')
-                    gp = player['GP']
-                    ores = {ore: player[ore] for ore in minerals}
-                    steps = player['steps']
-                    days = player['day']
-                    warehouse = player['warehouse']
+                    keep_data = {
+                    'GP': player['GP'],
+                    'pickaxe': player['pickaxe'],
+                    'torch': player['torch'],
+                    'max_load': player['max_load'],
+                    'steps': player['steps'],
+                    'day': player['day'],
+                    'warehouse': player['warehouse'],
+                    'portal': player['portal'],
+                    'copper': player['copper'],
+                    'silver': player['silver'],
+                    'gold': player['gold'],
+                    'name': player['name'],
+                                            }
+
+                    # Load level 2
                     initialize_game(game_map, fog, player, "level2.txt", level=2)
-                    player['GP'] = gp
-                    for ore in minerals:
-                        player[ore] = ores[ore]
-                    player['steps'] = steps
-                    player['day'] = days
-                    player['warehouse'] = warehouse
+
+                    # Restore state
+                    for key in keep_data:
+                        player[key] = keep_data[key]
                     continue
                 elif tile == 'U':
                     print("You found a stairwell leading back to the first level...")
+                    keep_data = {
+                    'GP': player['GP'],
+                    'pickaxe': player['pickaxe'],
+                    'torch': player['torch'],
+                    'max_load': player['max_load'],
+                    'steps': player['steps'],
+                    'day': player['day'],
+                    'warehouse': player['warehouse'],
+                    'portal': player['portal'],
+                    'copper': player['copper'],
+                    'silver': player['silver'],
+                    'gold': player['gold'],
+                    'name': player['name'],
+                                            }
 
-                    # Save current state
-                    gp = player['GP']
-                    ores = {ore: player[ore] for ore in minerals}
-                    steps = player['steps']
-                    days = player['day']
-                    warehouse = player['warehouse']
-                        # Load level 1
+                    # Load level 1
                     initialize_game(game_map, fog, player, "level1.txt", level=1)
 
-                     # Restore player state
-                    player['GP'] = gp
-                    for ore in minerals:
-                        player[ore] = ores[ore]
-                    player['steps'] = steps
-                    player['day'] = days
-                    player['warehouse'] = warehouse
-
+                    # Restore state
+                    for key in keep_data:
+                        player[key] = keep_data[key]
                     continue
                 player['x']=new_x
                 player['y']=new_y
