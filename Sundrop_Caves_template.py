@@ -182,6 +182,25 @@ def show_town_menu():
     print("Sa(V)e game")
     print("(Q)uit to main menu")
     print("------------------------")
+def sell_ore():
+    total =0 
+    for ore in minerals:
+        if player[ore]>0:
+            price = randint(*prices[ore])
+            gp = player[ore]*price
+            print(f'You sold {player[ore]} {ore} for {gp} GP.')
+            player ['GP'] += gp 
+            player[ore] =0
+            player['load']=0
+            total +=gp
+    if player['GP']>= WIN_GP:
+        print(f'\nWoo-hoo! Well done, {player['name']}, you have {player['GP']} GP!\nYou now have enough to retire and play video games every day.\nAnd it only took you {player['day']} days and {player['steps']} steps! You win!')
+def replenish_nodes():
+    ores=['C','S','G']
+    for y in range(MAP_HEIGHT):
+        for x in range(MAP_WIDTH):
+            if game_map[y][x] == ' ' and randint(1,100)<=20:
+                game_map[y][x] = ores[randint(0,2)]
             
 
 #--------------------------- MAIN GAME ---------------------------
@@ -323,7 +342,35 @@ while True:
                 player['turns'] -= 1
                 player['steps'] +=1
                 clear_fog(fog, player)
-                
+
+                if player['turns']==0:
+                    print('You are exhausted.\nYou place your portal stone here and zap back to town.')
+                    game_state = 'town'
+                    player['portal'] = (player['x'], player['y'])
+                    player['x'], player ['y']=0,0
+                    sell_ore()
+                    player['day'] +=1
+                    player['turns'] = TURNS_PER_DAY
+                    replenish_nodes()
+        elif move == 'p':
+            draw_map(game_map,fog,player)
+        elif move == 'i':
+            show_information(player)
+        elif move =='p':
+            print('You place your portal stone here and zap back to town.')
+            player['portal'] = (player['x'], player['y'])
+            player['x'] = 0
+            player['y']=0
+            game_state='town'
+            sell_ore()
+            player['day'] +=1
+            player['turns']=TURNS_PER_DAY
+            replenish_nodes()
+
+        elif move == 'q':
+            game_state= 'main'
+        else:
+            print('Invalid option. Please try again')         
 
 
 
