@@ -1,0 +1,10 @@
+      CCC         SSSSS    GGG   
+    CCCCCCC       SSSSS   GGGG  
+   CCCCCCCC       SSS    GGGG   
+   CCCC         SSSSS     GG    
+     CC        SSS      CCCC    
+  CCCCC       S       CCCCCC    
+ CCCCCCC            CCCCCCCC    
+   CCCC       GGG             SS
+     CC       GGGG        SSSSSS
+      C        GGGG      SSSGGGU
